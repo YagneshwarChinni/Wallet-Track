@@ -102,15 +102,4 @@ Transactions are stored with the following fields:
 ## License
 
 All rights reserved © 2026 WalletTrack
-
-## 📚 Documentation
-
-For more detailed information, see:
-- [DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md) - Complete documentation index
-- [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Developer quick reference
-- [PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md) - Comprehensive feature overview
-- [CHANGELOG.md](./CHANGELOG.md) - Version history
-
----
-
-**Version:** 1.2.5 | **Built by:** Nani Technologies
+**Version:** 1.2.5 | **Built by:** Yagneshwar Chinni
