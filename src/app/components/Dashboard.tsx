@@ -5,12 +5,16 @@ import Transactions from './Transactions';
 import Insights from './Insights';
 import RoleSwitcher from './RoleSwitcher';
 import AddTransactionModal from './AddTransactionModal';
+import ProfileModal from './ProfileModal';
 import Toast from './Toast';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import AboutModal from './AboutModal';
 import { Plus, Download, Keyboard } from 'lucide-react';
 import { useKeyboardShortcuts } from './nani/useKeyboardShortcuts';
 import { getFormattedVersion } from './nani/BuildInfo';
+import type { AuthUser } from '../App';
+
+const ADMIN_EMAIL = 'yagneshwarchinni@gmail.com';
 
 // Mock transaction data
 export const initialTransactions = [
@@ -31,31 +35,56 @@ export const initialTransactions = [
   { id: 15, date: '2026-02-28', amount: -80, category: 'Entertainment', type: 'Expense', description: 'Concert tickets' },
 ];
 
-export default function Dashboard() {
-  // Load transactions from localStorage or use initial data
-  const loadTransactions = () => {
-    const saved = localStorage.getItem('wallettrack-transactions');
-    return saved ? JSON.parse(saved) : initialTransactions;
+type DashboardProps = {
+  currentUser: AuthUser;
+  onSignOut: () => void;
+  onUpdateProfile: (updatedUser: AuthUser, previousEmail: string) => string | null;
+};
+
+export default function Dashboard({ currentUser, onSignOut, onUpdateProfile }: DashboardProps) {
+  const canAccessAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL;
+  const getUserStorageKey = (field: string) => {
+    const emailKey = currentUser.email.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return `wallettrack-${field}-${emailKey}`;
   };
 
-  const loadDarkMode = () => {
-    const saved = localStorage.getItem('wallettrack-darkmode');
-    return saved ? JSON.parse(saved) : false;
+  const readStoredTransactions = () => {
+    const saved = localStorage.getItem(getUserStorageKey('transactions'));
+
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+
+    const legacySaved = localStorage.getItem('wallettrack-transactions');
+
+    if (legacySaved) {
+      try {
+        return JSON.parse(legacySaved);
+      } catch {
+        return [];
+      }
+    }
+
+    return [];
   };
 
-  const loadRole = () => {
-    const saved = localStorage.getItem('wallettrack-role');
-    return saved || 'Viewer';
+  const readStoredPreference = (field: string, fallback: string) => {
+    return localStorage.getItem(getUserStorageKey(field)) ?? localStorage.getItem(`wallettrack-${field}`) ?? fallback;
   };
 
-  const [transactions, setTransactions] = useState(loadTransactions);
-  const [role, setRole] = useState(loadRole);
+  const [transactions, setTransactions] = useState(readStoredTransactions);
+  const [role, setRole] = useState(() => (canAccessAdmin ? readStoredPreference('role', 'Admin') : 'Viewer'));
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(loadDarkMode);
+  const [darkMode, setDarkMode] = useState(() => readStoredPreference('darkmode', 'false') === 'true');
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Handler functions (defined before useKeyboardShortcuts to avoid initialization errors)
   const handleAddTransaction = (newTransaction: any) => {
@@ -64,13 +93,13 @@ export default function Dashboard() {
       id: Date.now(),
       amount: newTransaction.type === 'Expense' ? -Math.abs(newTransaction.amount) : Math.abs(newTransaction.amount)
     };
-    setTransactions([transaction, ...transactions]);
+    setTransactions((previousTransactions) => [transaction, ...previousTransactions]);
     setIsModalOpen(false);
     setToast({ message: 'Transaction added successfully!', type: 'success' });
   };
 
   const handleDeleteTransaction = (id: number) => {
-    setTransactions(transactions.filter((t: any) => t.id !== id));
+    setTransactions((previousTransactions) => previousTransactions.filter((t: any) => t.id !== id));
     setToast({ message: 'Transaction deleted successfully!', type: 'success' });
   };
 
@@ -118,10 +147,16 @@ export default function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    if (!canAccessAdmin && role !== 'Viewer') {
+      setRole('Viewer');
+    }
+  }, [canAccessAdmin, role]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onNewTransaction: () => {
-      if (role === 'Admin' && !isModalOpen) {
+      if (!isModalOpen) {
         setIsModalOpen(true);
       }
     },
@@ -147,17 +182,17 @@ export default function Dashboard() {
 
   // Save to localStorage whenever transactions change
   useEffect(() => {
-    localStorage.setItem('wallettrack-transactions', JSON.stringify(transactions));
+    localStorage.setItem(getUserStorageKey('transactions'), JSON.stringify(transactions));
   }, [transactions]);
 
   // Save dark mode preference
   useEffect(() => {
-    localStorage.setItem('wallettrack-darkmode', JSON.stringify(darkMode));
+    localStorage.setItem(getUserStorageKey('darkmode'), JSON.stringify(darkMode));
   }, [darkMode]);
 
   // Save role preference
   useEffect(() => {
-    localStorage.setItem('wallettrack-role', role);
+    localStorage.setItem(getUserStorageKey('role'), role);
   }, [role]);
 
   const totalIncome = transactions
@@ -197,6 +232,26 @@ export default function Dashboard() {
           </p>
         </div>
 
+        <div className="px-6 pb-2">
+          <div className={`${darkMode ? 'bg-gray-700/70 text-gray-100' : 'bg-gray-100 text-gray-700'} rounded-xl px-4 py-3`}>
+            <p className="text-xs uppercase tracking-[0.2em] opacity-70">Signed in as</p>
+            <p className="mt-1 text-sm font-medium truncate">{currentUser.name}</p>
+            <p className="text-xs opacity-75 truncate">{currentUser.email}</p>
+            <button
+              onClick={() => setShowProfile(true)}
+              className={`mt-3 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1118.88 6.196 9 9 0 015.12 17.804z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Profile
+            </button>
+          </div>
+        </div>
+
         <nav className="px-4 space-y-2">
           <a href="#" className={`flex items-center gap-3 px-4 py-3 rounded-lg ${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'} font-medium`}>
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,7 +287,17 @@ export default function Dashboard() {
             <span>Shortcuts</span>
           </button>
 
-          <RoleSwitcher role={role} setRole={setRole} darkMode={darkMode} />
+          <RoleSwitcher role={role} setRole={setRole} darkMode={darkMode} canAccessAdmin={canAccessAdmin} />
+
+          <button
+            onClick={onSignOut}
+            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg ${darkMode ? 'text-gray-300 hover:bg-gray-700 hover:text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} transition-colors text-sm`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-13v1m0 8v1m0 4h-3m3-4h-3m3-4h-3" />
+            </svg>
+            <span>Sign out</span>
+          </button>
 
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -258,14 +323,29 @@ export default function Dashboard() {
           <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             <span className="text-blue-600">Wallet</span>Track
           </h1>
+          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{currentUser.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <RoleSwitcher role={role} setRole={setRole} darkMode={darkMode} />
+          <RoleSwitcher role={role} setRole={setRole} darkMode={darkMode} canAccessAdmin={canAccessAdmin} />
           <button
             onClick={() => setDarkMode(!darkMode)}
             className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
           >
             {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button
+            onClick={onSignOut}
+            className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+            title="Sign out"
+          >
+            ⎋
+          </button>
+          <button
+            onClick={() => setShowProfile(true)}
+            className={`p-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+            title="Profile"
+          >
+            👤
           </button>
         </div>
       </div>
@@ -284,6 +364,19 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowProfile(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${
+                  darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                } transition-colors`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A9 9 0 1118.88 6.196 9 9 0 015.12 17.804z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Profile
+              </button>
+
             {/* Export Dropdown */}
             <div className="relative group">
               <button
@@ -330,15 +423,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {role === 'Admin' && (
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                Add Transaction
-              </button>
-            )}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-200"
+            >
+              <Plus className="w-5 h-5" />
+              Add Transaction
+            </button>
           </div>
         </div>
 
@@ -361,7 +452,7 @@ export default function Dashboard() {
           transactions={transactions}
           darkMode={darkMode}
           onDelete={handleDeleteTransaction}
-          isAdmin={role === 'Admin'}
+          isAdmin={canAccessAdmin && role === 'Admin'}
         />
 
         {/* Footer */}
@@ -425,6 +516,15 @@ export default function Dashboard() {
         isOpen={showAbout}
         onClose={() => setShowAbout(false)}
         darkMode={darkMode}
+      />
+
+      <ProfileModal
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        onSave={onUpdateProfile}
+        currentUser={currentUser}
+        darkMode={darkMode}
+        canAccessAdmin={canAccessAdmin}
       />
     </div>
   );
