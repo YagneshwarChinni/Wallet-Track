@@ -15,6 +15,7 @@ export type AuthUser = {
 const ADMIN_EMAIL = 'yagneshwarchinni@gmail.com';
 const SESSION_KEY = 'wallettrack-session-user';
 const USERS_KEY = 'wallettrack-users';
+const TRANSACTION_MIGRATION_KEY = 'wallettrack-transactions-cleared-v1';
 
 export type AppPage =
   | 'overview'
@@ -93,6 +94,21 @@ const saveUsers = (users: AuthUser[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
+const clearAllTransactionHistory = () => {
+  const keysToRemove: string[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+
+    if (key && key.includes('wallettrack-transactions')) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem('wallettrack-transactions');
+};
+
 const getUserStorageKey = (field: string, email: string) => {
   const emailKey = normalizeEmail(email).replace(/[^a-z0-9]+/g, '-');
   return `wallettrack-${field}-${emailKey}`;
@@ -119,6 +135,13 @@ export default function App() {
   const [page, setPage] = useState<AppPage>(() => pageFromPath(window.location.pathname));
 
   useEffect(() => {
+    const migrationDone = localStorage.getItem(TRANSACTION_MIGRATION_KEY) === 'true';
+
+    if (!migrationDone) {
+      clearAllTransactionHistory();
+      localStorage.setItem(TRANSACTION_MIGRATION_KEY, 'true');
+    }
+
     const savedSession = localStorage.getItem(SESSION_KEY);
 
     if (savedSession) {

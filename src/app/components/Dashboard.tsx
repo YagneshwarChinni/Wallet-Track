@@ -46,25 +46,6 @@ const formatDateTime = (value?: string) => {
   }).format(new Date(value));
 };
 
-// Mock transaction data
-export const initialTransactions = [
-  { id: 1, date: '2026-04-05', amount: 3200, category: 'Salary', type: 'Income', description: 'Monthly salary' },
-  { id: 2, date: '2026-04-04', amount: -85, category: 'Groceries', type: 'Expense', description: 'Weekly groceries' },
-  { id: 3, date: '2026-04-03', amount: -1200, category: 'Rent', type: 'Expense', description: 'Monthly rent' },
-  { id: 4, date: '2026-04-02', amount: -45, category: 'Transportation', type: 'Expense', description: 'Gas' },
-  { id: 5, date: '2026-04-01', amount: -120, category: 'Entertainment', type: 'Expense', description: 'Movie tickets & dinner' },
-  { id: 6, date: '2026-03-30', amount: 500, category: 'Freelance', type: 'Income', description: 'Design project' },
-  { id: 7, date: '2026-03-28', amount: -65, category: 'Utilities', type: 'Expense', description: 'Internet bill' },
-  { id: 8, date: '2026-03-25', amount: -200, category: 'Shopping', type: 'Expense', description: 'Clothes' },
-  { id: 9, date: '2026-03-20', amount: 3200, category: 'Salary', type: 'Income', description: 'Monthly salary' },
-  { id: 10, date: '2026-03-18', amount: -90, category: 'Groceries', type: 'Expense', description: 'Weekly groceries' },
-  { id: 11, date: '2026-03-15', amount: -150, category: 'Healthcare', type: 'Expense', description: 'Doctor visit' },
-  { id: 12, date: '2026-03-10', amount: -55, category: 'Transportation', type: 'Expense', description: 'Gas' },
-  { id: 13, date: '2026-03-05', amount: 3200, category: 'Salary', type: 'Income', description: 'Monthly salary' },
-  { id: 14, date: '2026-03-03', amount: -1200, category: 'Rent', type: 'Expense', description: 'Monthly rent' },
-  { id: 15, date: '2026-02-28', amount: -80, category: 'Entertainment', type: 'Expense', description: 'Concert tickets' },
-];
-
 type DashboardProps = {
   currentUser: AuthUser;
   onSignOut: () => void;
@@ -178,9 +159,13 @@ export default function Dashboard({ currentUser, onSignOut, onUpdateProfile, pag
   };
 
   const handleResetData = () => {
-    if (window.confirm('Are you sure you want to reset all data? This will restore the demo transactions.')) {
-      setTransactions(initialTransactions);
-      setToast({ message: 'Data reset to demo transactions!', type: 'success' });
+    if (window.confirm('Are you sure you want to clear all transaction data? This cannot be undone.')) {
+      const currentTransactionsKey = getUserStorageKey('transactions');
+
+      setTransactions([]);
+      localStorage.removeItem(currentTransactionsKey);
+      localStorage.removeItem('wallettrack-transactions');
+      setToast({ message: 'All transaction data cleared!', type: 'success' });
     }
   };
 
@@ -890,7 +875,7 @@ export default function Dashboard({ currentUser, onSignOut, onUpdateProfile, pag
                       darkMode ? 'text-red-400 hover:bg-gray-700' : 'text-red-600 hover:bg-gray-50'
                     } rounded-b-lg transition-colors border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
                   >
-                    Reset Demo Data
+                    Clear All Data
                   </button>
                 )}
               </div>

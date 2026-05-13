@@ -33,6 +33,21 @@ const saveUsers = (users: AuthUser[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
+const clearAllTransactionData = () => {
+  const keysToRemove: string[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+
+    if (key && key.includes('wallettrack-transactions')) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
+  localStorage.removeItem('wallettrack-transactions');
+};
+
 export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
@@ -100,6 +115,7 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
     } as any;
 
     saveUsers([...users, newUser]);
+    clearAllTransactionData();
 
     // Open mail client to notify admin about the new signup
     try {
