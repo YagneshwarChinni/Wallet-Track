@@ -1,6 +1,6 @@
 import { X, Command } from 'lucide-react';
 
-export default function KeyboardShortcutsModal({ isOpen, onClose, darkMode }: any) {
+export default function KeyboardShortcutsModal({ isOpen, onClose, darkMode, pageMode }: any) {
   if (!isOpen) return null;
 
   const shortcuts = [
@@ -12,14 +12,11 @@ export default function KeyboardShortcutsModal({ isOpen, onClose, darkMode }: an
     { keys: ['ESC'], description: 'Close modals', windows: 'ESC' },
   ];
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className={`${
-          darkMode ? 'bg-gray-800' : 'bg-white'
-        } rounded-xl shadow-2xl max-w-md w-full p-6`}
-        onClick={(e) => e.stopPropagation()}
-      >
+  const content = (
+    <div
+      className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl w-full max-w-md p-6`}
+      onClick={(e) => e.stopPropagation()}
+    >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -79,6 +76,15 @@ export default function KeyboardShortcutsModal({ isOpen, onClose, darkMode }: an
           </p>
         </div>
       </div>
+  );
+
+  if (pageMode) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      {content}
     </div>
   );
 }

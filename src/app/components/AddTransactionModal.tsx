@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function AddTransactionModal({ isOpen, onClose, onAdd, darkMode }: any) {
+export default function AddTransactionModal({ isOpen, onClose, onAdd, darkMode, pageMode }: any) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     amount: '',
@@ -50,9 +50,8 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd, darkMode }
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 animate-fadeIn">
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl max-w-md w-full animate-slideUp`}>
+  const content = (
+    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl w-full max-w-md ${pageMode ? '' : 'animate-slideUp'}`}>
         {/* Header */}
         <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -199,6 +198,15 @@ export default function AddTransactionModal({ isOpen, onClose, onAdd, darkMode }
           </div>
         </form>
       </div>
+  );
+
+  if (pageMode) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 animate-fadeIn">
+      {content}
     </div>
   );
 }

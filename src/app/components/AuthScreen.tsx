@@ -7,6 +7,7 @@ type AuthScreenProps = {
 };
 
 const USERS_KEY = 'wallettrack-users';
+const ADMIN_EMAIL = 'yagneshwarchinni@gmail.com';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -55,6 +56,11 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
         return;
       }
 
+      if ((matchedUser as any).disabled) {
+        setError('This account has been disabled. Contact the administrator.');
+        return;
+      }
+
       onAuthSuccess(matchedUser);
       return;
     }
@@ -81,13 +87,29 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
       return;
     }
 
+    const now = new Date().toISOString();
+
     const newUser = {
       name: name.trim(),
       email: normalizedEmail,
       password,
-    };
+      disabled: false,
+      provider: 'Email',
+      createdAt: now,
+      lastSignInAt: now,
+    } as any;
 
     saveUsers([...users, newUser]);
+
+    // Open mail client to notify admin about the new signup
+    try {
+      const subject = encodeURIComponent('New WalletTrack signup');
+      const body = encodeURIComponent(`A new user signed up:\n\nName: ${newUser.name}\nEmail: ${newUser.email}\n\nYou can manage users in the admin panel.`);
+      window.location.href = `mailto:${ADMIN_EMAIL}?subject=${subject}&body=${body}`;
+    } catch (e) {
+      // ignore
+    }
+
     onAuthSuccess(newUser);
   };
 

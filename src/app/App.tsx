@@ -6,11 +6,72 @@ export type AuthUser = {
   name: string;
   email: string;
   password: string;
+  disabled?: boolean;
+  provider?: string;
+  createdAt?: string;
+  lastSignInAt?: string;
 };
 
 const ADMIN_EMAIL = 'yagneshwarchinni@gmail.com';
 const SESSION_KEY = 'wallettrack-session-user';
 const USERS_KEY = 'wallettrack-users';
+
+export type AppPage =
+  | 'overview'
+  | 'transactions'
+  | 'analytics'
+  | 'admin'
+  | 'profile'
+  | 'add-transaction'
+  | 'shortcuts'
+  | 'about'
+  | 'users';
+
+const pageFromPath = (pathname: string): AppPage => {
+  switch (pathname) {
+    case '/transactions':
+      return 'transactions';
+    case '/analytics':
+      return 'analytics';
+    case '/admin':
+      return 'admin';
+    case '/profile':
+      return 'profile';
+    case '/add-transaction':
+      return 'add-transaction';
+    case '/shortcuts':
+      return 'shortcuts';
+    case '/about':
+      return 'about';
+    case '/users':
+      return 'users';
+    default:
+      return 'overview';
+  }
+};
+
+const pathFromPage = (page: AppPage) => {
+  switch (page) {
+    case 'transactions':
+      return '/transactions';
+    case 'analytics':
+      return '/analytics';
+    case 'admin':
+      return '/admin';
+    case 'profile':
+      return '/profile';
+    case 'add-transaction':
+      return '/add-transaction';
+    case 'shortcuts':
+      return '/shortcuts';
+    case 'about':
+      return '/about';
+    case 'users':
+      return '/users';
+    default:
+      return '/';
+  }
+};
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -55,6 +116,7 @@ const migrateUserStorage = (previousEmail: string, nextEmail: string) => {
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [page, setPage] = useState<AppPage>(() => pageFromPath(window.location.pathname));
 
   useEffect(() => {
     const savedSession = localStorage.getItem(SESSION_KEY);
@@ -70,14 +132,41 @@ export default function App() {
     setIsReady(true);
   }, []);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setPage(pageFromPath(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (nextPage: AppPage) => {
+    const nextPath = pathFromPage(nextPage);
+    window.history.pushState({}, '', nextPath);
+    setPage(nextPage);
+  };
+
   const handleAuthSuccess = (user: AuthUser) => {
+    const now = new Date().toISOString();
     const normalizedUser = {
       ...user,
       email: normalizeEmail(user.email),
+      provider: user.provider ?? 'Email',
+      createdAt: user.createdAt ?? now,
+      lastSignInAt: now,
     };
+
+    const users = readUsers();
+    const nextUsers = users.some((storedUser) => storedUser.email === normalizedUser.email)
+      ? users.map((storedUser) =>
+          storedUser.email === normalizedUser.email ? { ...storedUser, ...normalizedUser } : storedUser
+        )
+      : [...users, normalizedUser];
 
     setCurrentUser(normalizedUser);
     localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
+    saveUsers(nextUsers);
   };
 
   const handleProfileUpdate = (updatedUser: AuthUser, previousEmail: string) => {
@@ -97,9 +186,17 @@ export default function App() {
       return 'That email is already in use.';
     }
 
+    const now = new Date().toISOString();
+    const metadataSource =
+      users.find((user) => user.email === normalizedPreviousEmail) ?? currentUser;
+
     const normalizedUser = {
+      ...metadataSource,
       ...updatedUser,
       email: normalizedNextEmail,
+      provider: metadataSource?.provider ?? 'Email',
+      createdAt: metadataSource?.createdAt ?? now,
+      lastSignInAt: metadataSource?.lastSignInAt ?? currentUser?.lastSignInAt ?? now,
     };
 
     const nextUsers = users.some((user) => user.email === normalizedPreviousEmail)
@@ -144,6 +241,8 @@ export default function App() {
       currentUser={currentUser}
       onSignOut={handleSignOut}
       onUpdateProfile={handleProfileUpdate}
+      page={page}
+      onNavigate={navigate}
     />
   );
 }

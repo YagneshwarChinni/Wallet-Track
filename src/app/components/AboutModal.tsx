@@ -1,19 +1,16 @@
 import { X } from 'lucide-react';
 import { getBuildInfo } from './nani/BuildInfo';
 
-export default function AboutModal({ isOpen, onClose, darkMode }: any) {
+export default function AboutModal({ isOpen, onClose, darkMode, pageMode }: any) {
   if (!isOpen) return null;
 
   const buildInfo = getBuildInfo();
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div
-        className={`${
-          darkMode ? 'bg-gray-800' : 'bg-white'
-        } rounded-xl shadow-2xl max-w-lg w-full p-6`}
-        onClick={(e) => e.stopPropagation()}
-      >
+  const content = (
+    <div
+      className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl w-full max-w-lg p-6`}
+      onClick={(e) => e.stopPropagation()}
+    >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -109,7 +106,7 @@ export default function AboutModal({ isOpen, onClose, darkMode }: any) {
         </div>
 
         {/* Footer Button */}
-        <div className="mt-6 pt-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}">
+        <div className={`mt-6 pt-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <button
             onClick={onClose}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -118,6 +115,15 @@ export default function AboutModal({ isOpen, onClose, darkMode }: any) {
           </button>
         </div>
       </div>
+  );
+
+  if (pageMode) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      {content}
     </div>
   );
 }

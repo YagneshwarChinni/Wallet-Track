@@ -9,6 +9,7 @@ type ProfileModalProps = {
   currentUser: AuthUser;
   darkMode: boolean;
   canAccessAdmin: boolean;
+  pageMode?: boolean;
 };
 
 const ADMIN_EMAIL = 'yagneshwarchinni@gmail.com';
@@ -20,6 +21,7 @@ export default function ProfileModal({
   currentUser,
   darkMode,
   canAccessAdmin,
+  pageMode,
 }: ProfileModalProps) {
   const [name, setName] = useState(currentUser.name);
   const [email, setEmail] = useState(currentUser.email);
@@ -104,12 +106,11 @@ export default function ProfileModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div
-        className={`w-full max-w-xl rounded-[1.75rem] border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} shadow-2xl`}
-        onClick={(event) => event.stopPropagation()}
-      >
+  const content = (
+    <div
+      className={`w-full max-w-xl rounded-[1.75rem] border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} shadow-2xl`}
+      onClick={(event) => event.stopPropagation()}
+    >
         <div className={`flex items-start justify-between border-b p-6 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div>
             <p className={`text-xs uppercase tracking-[0.24em] ${darkMode ? 'text-cyan-300/70' : 'text-blue-600/70'}`}>
@@ -271,7 +272,16 @@ export default function ProfileModal({
             </div>
           </form>
         </div>
-      </div>
+    </div>
+  );
+
+  if (pageMode) {
+    return content;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      {content}
     </div>
   );
 }
